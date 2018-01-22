@@ -8,22 +8,26 @@
 
 library(xtruso)
 
-#wps.off;
+#wps.off
 
 features = "d:/data/colabis/sample-points-wgs84.shp"
 
 product = "RX"
 
-#wps.on;
-
-cat(features)
+#wps.on
 
 layername <- sub(".shp","", features) # just use the file name as the layer name
-cat(layername)
-#layername = "sample-points-wgs84"
+#wps.off
+layername = "sample-points-wgs84"
+#wps.on
 inputFeatures <- readOGR(features, layer = layername)
+summary(inputFeatures)
 
-filename <- paste("raa01-", tolower(product), "_10000-latest-dwd---bin", sep = "")
+productNameUpperCase <- toupper(product)
+
+productNameLowerCase <- tolower(product)
+
+filename <- paste("raa01-", productNameLowerCase, "_10000-latest-dwd---bin", sep = "")
 
 sensor <- "radolan"
 
@@ -31,11 +35,11 @@ if(toupper(product) == "RX"){
   sensor <- "composit"
 }
 
-url <- paste("https://opendata.dwd.de/weather/radar/", sensor ,"/", tolower(product), "/", filename, sep = "")
+url <- paste("https://opendata.dwd.de/weather/radar/", sensor ,"/", productNameLowerCase, "/", filename, sep = "")
 
 download.file(url, destfile = paste("./", filename, sep = ""))
 
-rastersf = ReadRadolanBinary(filename, toupper(product))
+rastersf = ReadRadolanBinary(paste("raa01-", productNameLowerCase, "_10000-latest-dwd---bin", sep = ""), productNameUpperCase)
 
 #reproject
 sr <- "+proj=longlat +datum=WGS84 +no_defs"
