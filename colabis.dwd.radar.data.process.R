@@ -7,6 +7,7 @@
 # abstract = Radolan product type, minOccurs = 0, maxOccurs=1, value = RX;
 
 library(xtruso)
+library(stringr)
 
 #wps.off
 
@@ -17,17 +18,20 @@ product = "RX"
 #wps.on
 
 layername <- sub(".shp","", features) # just use the file name as the layer name
+
+maxNumberOfDatasets <- 20
+
 #wps.off
 layername = "sample-points-wgs84"
 #wps.on
+
 inputFeatures <- readOGR(features, layer = layername)
-summary(inputFeatures)
+
+#summary(inputFeatures)
 
 productNameUpperCase <- toupper(product)
 
 productNameLowerCase <- tolower(product)
-
-filename <- paste("raa01-", productNameLowerCase, "_10000-latest-dwd---bin", sep = "")
 
 sensor <- "radolan"
 
@@ -35,31 +39,83 @@ if(toupper(product) == "RX"){
   sensor <- "composit"
 }
 
-url <- paste("https://opendata.dwd.de/weather/radar/", sensor ,"/", productNameLowerCase, "/", filename, sep = "")
+url <- paste("https://opendata.dwd.de/weather/radar/", sensor ,"/", productNameLowerCase, sep = "")
 
-download.file(url, destfile = paste("./", filename, sep = ""))
+# read the file listing
+pg <- readLines(url)
 
-rastersf = ReadRadolanBinary(paste("raa01-", productNameLowerCase, "_10000-latest-dwd---bin", sep = ""), productNameUpperCase)
+#head(pg)
 
-#reproject
-sr <- "+proj=longlat +datum=WGS84 +no_defs"
+# extract filenames from html
+pg <- str_replace(pg, "^.*raa01", "raa01")
 
-projected_raster <- projectRaster(rastersf, crs = sr)
+pg <- pg[ startsWith(pg, "raa01") ]
 
-#writeRaster(projected_raster, "d:/tmp/output.tiff", overwrite=TRUE)
+pg <- str_replace(pg, "</a>.*", "")
+
+pg <- pg[ !endsWith(pg, "latest-dwd---bin") ]
+
+urls <- sprintf("%s%s", url, pg)
+
+#head(urls)
+
+urls2 <- tail(urls, maxNumberOfDatasets)
+
+dir = file.path("~", "opendata.dwd.de/weather/radar/composit/rx");
+
+dir.create(dir, recursive = TRUE)
+setwd(dir)
+
+existingFiles <- list.files(dir)
 
 x <- numeric()
 y <- numeric()
 value <- numeric()
+timeStamp <- character()
 
-dataFrame <- data.frame(x, y, value)
+dataFrame <- data.frame(x, y, value, timeStamp)
 
-for(i in 1:nrow(inputFeatures)) {
-  p <- inputFeatures[i,]
-  radarValue = extract(projected_raster, matrix(c(p@coords[1], p@coords[2]), ncol = 2))
-  cat(radarValue)
-  newRow <- data.frame(x = p@coords[1], y = p@coords[2], value = radarValue)
-  dataFrame <- rbind(dataFrame, newRow)
+for (f in urls2[-1]) {
+  
+  #extract base name from link (presumably the part after the last forward slash)
+  baseName <- basename(f)
+  
+  currentTimeStamp <- sub("^.*10000-", "", baseName)
+  
+  currentTimeStamp <- sub("-dwd.*", "", currentTimeStamp)
+  
+  if(baseName %in% existingFiles){
+    print(paste("Not downloading: ", baseName))
+  }else{
+    print(paste("Downloading: ", baseName))
+    try(download.file(f, baseName))
+  }
+}
+
+#re-list files
+existingFiles <- list.files(dir)
+
+existingFiles <- tail(existingFiles, maxNumberOfDatasets)
+
+for(existingFile in existingFiles[-1]){
+  
+  rastersf = ReadRadolanBinary(existingFile, productNameUpperCase)
+  
+  print(paste("Processing: ", existingFile))
+  
+  #reproject
+  sr <- "+proj=longlat +datum=WGS84 +no_defs"
+  
+  projected_raster <- projectRaster(rastersf, crs = sr)
+  
+  for(i in 1:nrow(inputFeatures)) {
+    p <- inputFeatures[i,]
+    radarValue = extract(projected_raster, matrix(c(p@coords[1], p@coords[2]), ncol = 2))
+    #cat(radarValue)
+    newRow <- data.frame(x = p@coords[1], y = p@coords[2], value = radarValue, timeStamp = currentTimeStamp)
+    dataFrame <- rbind(dataFrame, newRow)
+  }
+  
 }
 
 #wps.out: id = result, type = text/csv, title = CSV output data;
