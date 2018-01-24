@@ -61,7 +61,7 @@ urls <- sprintf("%s%s", url, pg)
 
 urls2 <- tail(urls, maxNumberOfDatasets)
 
-dir = file.path(tempdir(), "opendata.dwd.de/weather/radar/composit/rx");
+dir = file.path("/usr/share/data", "opendata.dwd.de/weather/radar/composit/rx");
 
 dir.create(dir, recursive = TRUE)
 #setwd(dir)
