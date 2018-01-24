@@ -9,21 +9,21 @@
 library(xtruso)
 library(stringr)
 
-#wps.off
+#wps.off;
 
 features = "d:/data/colabis/sample-points-wgs84.shp"
 
 product = "RX"
 
-#wps.on
+#wps.on;
 
 layername <- sub(".shp","", features) # just use the file name as the layer name
 
 maxNumberOfDatasets <- 20
 
-#wps.off
+#wps.off;
 layername = "sample-points-wgs84"
-#wps.on
+#wps.on;
 
 inputFeatures <- readOGR(features, layer = layername)
 
