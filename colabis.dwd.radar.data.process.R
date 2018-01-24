@@ -39,7 +39,7 @@ if(toupper(product) == "RX"){
   sensor <- "composit"
 }
 
-url <- paste("https://opendata.dwd.de/weather/radar/", sensor ,"/", productNameLowerCase, sep = "")
+url <- paste("https://opendata.dwd.de/weather/radar/", sensor ,"/", productNameLowerCase, "/", sep = "")
 
 # read the file listing
 pg <- readLines(url)
@@ -64,7 +64,7 @@ urls2 <- tail(urls, maxNumberOfDatasets)
 dir = file.path("~", "opendata.dwd.de/weather/radar/composit/rx");
 
 dir.create(dir, recursive = TRUE)
-setwd(dir)
+#setwd(dir)
 
 existingFiles <- list.files(dir)
 
@@ -88,7 +88,7 @@ for (f in urls2[-1]) {
     print(paste("Not downloading: ", baseName))
   }else{
     print(paste("Downloading: ", baseName))
-    try(download.file(f, baseName))
+    try(download.file(f, paste(dir, baseName, sep = "/")))
   }
 }
 
@@ -99,9 +99,14 @@ existingFiles <- tail(existingFiles, maxNumberOfDatasets)
 
 for(existingFile in existingFiles[-1]){
   
-  rastersf = ReadRadolanBinary(existingFile, productNameUpperCase)
+  if(! startsWith(existingFile, "raa01")){
+    print(paste("Not processing file:", existingFile))
+    next
+  }
+    
+  print(paste("Processing: ", paste(dir, existingFile, sep = "/")))
   
-  print(paste("Processing: ", existingFile))
+  rastersf = ReadRadolanBinary(paste(dir, existingFile, sep = "/"), productNameUpperCase)
   
   #reproject
   sr <- "+proj=longlat +datum=WGS84 +no_defs"
