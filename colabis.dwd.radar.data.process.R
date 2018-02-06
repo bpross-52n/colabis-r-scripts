@@ -6,6 +6,9 @@
 #wps.in: product, type = string, title = Product type,
 # abstract = Radolan product type, minOccurs = 0, maxOccurs=1, value = RX;
 
+#wps.in: maxNumberOfDatasets, type = integer, title = Maximum number of datasets,
+# abstract = The maximum number of datasets that values are gathered from, minOccurs = 0, maxOccurs=1, value = 20;
+
 library(xtruso)
 library(stringr)
 
@@ -15,11 +18,11 @@ features = "d:/data/colabis/sample-points-wgs84.shp"
 
 product = "RX"
 
+maxNumberOfDatasets <- 20
+
 #wps.on;
 
 layername <- sub(".shp","", features) # just use the file name as the layer name
-
-maxNumberOfDatasets <- 20
 
 #wps.off;
 layername = "sample-points-wgs84"
@@ -59,7 +62,7 @@ urls <- sprintf("%s%s", url, pg)
 
 #head(urls)
 
-urls2 <- tail(urls, maxNumberOfDatasets)
+urls2 <- tail(urls, maxNumberOfDatasets + 1)
 
 dir = file.path("/usr/share/data", "opendata.dwd.de/weather/radar/composit/rx");
 
@@ -88,6 +91,9 @@ for (f in urls2[-1]) {
     print(paste("Not downloading: ", baseName))
   }else{
     print(paste("Downloading: ", baseName))
+    
+    fullFilePath <- paste(dir, baseName, sep = "/");
+    
     try(download.file(f, paste(dir, baseName, sep = "/")))
   }
 }
@@ -95,7 +101,7 @@ for (f in urls2[-1]) {
 #re-list files
 existingFiles <- list.files(dir)
 
-existingFiles <- tail(existingFiles, maxNumberOfDatasets)
+existingFiles <- tail(existingFiles, maxNumberOfDatasets + 1)
 
 for(existingFile in existingFiles[-1]){
   
@@ -103,6 +109,10 @@ for(existingFile in existingFiles[-1]){
     print(paste("Not processing file:", existingFile))
     next
   }
+  
+  currentTimeStamp <- sub("^.*10000-", "", existingFile)
+  
+  currentTimeStamp <- sub("-dwd.*", "", currentTimeStamp)
     
   print(paste("Processing: ", paste(dir, existingFile, sep = "/")))
   
